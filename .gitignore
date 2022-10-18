@@ -2,5 +2,6 @@ node_modules/
 
 .env
 
-uploads/productos/**.*
+uploads/**.*
+uploads/
 uploads/usuarios/**.*

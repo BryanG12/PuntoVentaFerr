@@ -1,14 +1,22 @@
 // import { getConnection } from "./../database/database";
-import { request, response } from 'express';
-import { pool } from './../database/database.js';
-import bcryptjs from 'bcryptjs';
-import generateJWT from '../helpers/jwt.js';
+import { request, response } from "express";
+import { pool } from "./../database/database.js";
+import bcryptjs from "bcryptjs";
+import generateJWT from "../helpers/jwt.js";
 
 const getUsers = async (req = request, res = response) => {
-
-  const [result] = await pool.query("SELECT User, CONCAT(Name,' ',LastName) FullName FROM tblUser");
-  res.json(result);
-  
+  try {
+    const [result] = await pool.query(
+      "SELECT User, CONCAT(Name,' ',LastName) FullName FROM tblUser"
+    );
+    res.status(200).json(result);
+  } catch (error) {
+    console.log(error);
+    return res.status(400).json({
+      ok: false,
+      msg: "no se pueden obtener los usuarios",
+    });
+  }
 };
 
 const createUser = async (req = request, res = response) => {
@@ -41,8 +49,6 @@ const createUser = async (req = request, res = response) => {
     usuario = await pool.query("INSERT INTO tblUser SET ?", user);
 
     res.json(usuario);
-
-
   } catch (error) {
     res.status(500).json({
       ok: false,
@@ -52,12 +58,10 @@ const createUser = async (req = request, res = response) => {
 };
 
 const loginUser = async (req = request, res = response) => {
-
-  
   try {
     const { User, Password } = req.body;
 
-    let [usuario] =  await pool.query(
+    let [usuario] = await pool.query(
       "SELECT COUNT(*) as user, Password, Id FROM tblUser WHERE User=?",
       User
     );
@@ -71,23 +75,21 @@ const loginUser = async (req = request, res = response) => {
 
     const validPassword = bcryptjs.compareSync(Password, usuario[0].Password);
 
-    if(!validPassword){
+    if (!validPassword) {
       return res.status(400).json({
-        ok:false,
-        msg:'Contraseña invalida'
+        ok: false,
+        msg: "Contraseña invalida",
       });
     }
 
-    const token = await generateJWT( usuario[0].id,User);
+    const token = await generateJWT(usuario[0].id, User);
 
     res.json({
       ok: true,
       uid: usuario[0].Id,
       user: User,
-      token
-    })
-
-
+      token,
+    });
   } catch (error) {
     res.status(500).json({
       ok: false,
@@ -96,38 +98,31 @@ const loginUser = async (req = request, res = response) => {
   }
 };
 
-
-const revalidateToken = async(req=request, res=response)=>{
-  
+const revalidateToken = async (req = request, res = response) => {
   try {
-    
     const uid = req.uid;
     const user = req.user;
-  
-  
-  
+
     //Generar Nuevo token
-    const token =  await generateJWT(uid,  user );
-  
+    const token = await generateJWT(uid, user);
+
     res.json({
       ok: true,
       uid,
       user,
-      token
-    })
-    
+      token,
+    });
   } catch (error) {
     res.status(500).json({
-      ok:false,
-      msg: 'Error en el usuario',
-    })
+      ok: false,
+      msg: "Error en el usuario",
+    });
   }
-
-}
+};
 
 export const methods = {
   getUsers,
   createUser,
   loginUser,
-  revalidateToken
+  revalidateToken,
 };
